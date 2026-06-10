@@ -1,31 +1,23 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import psycopg2
+from app.database import get_connection
+from app.models import Project
 
 app = FastAPI()
 
-class Project(BaseModel):
-    title: str
-    description: str
 
 @app.get("/")
 def home():
     return {"message": "Portfolio Backend Running"}
 
-@app.get("/projects")
-def projects():
-    try:
-        conn = psycopg2.connect(
-            host="localhost",
-            database="portfolio_db",
-            user="portfolio_user",
-            password="Paul@1970"
-        )
 
+@app.get("/projects")
+def get_projects():
+    try:
+        conn = get_connection()
         cur = conn.cursor()
 
         cur.execute("""
-            SELECT id, title, description
+            SELECT id,title,description
             FROM projects
         """)
 
@@ -48,22 +40,17 @@ def projects():
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.post("/projects")
 def create_project(project: Project):
     try:
-        conn = psycopg2.connect(
-            host="localhost",
-            database="portfolio_db",
-            user="portfolio_user",
-            password="Paul@1970"
-        )
-
+        conn = get_connection()
         cur = conn.cursor()
 
         cur.execute(
             """
-            INSERT INTO projects (title, description)
-            VALUES (%s, %s)
+            INSERT INTO projects(title,description)
+            VALUES(%s,%s)
             """,
             (project.title, project.description)
         )
@@ -78,26 +65,24 @@ def create_project(project: Project):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.delete("/projects/{project_id}")
 def delete_project(project_id: int):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
 
-    conn = psycopg2.connect(
-        host="localhost",
-        database="portfolio_db",
-        user="portfolio_user",
-        password="Paul@1970"
-    )
+        cur.execute(
+            "DELETE FROM projects WHERE id=%s",
+            (project_id,)
+        )
 
-    cur = conn.cursor()
+        conn.commit()
 
-    cur.execute(
-        "DELETE FROM projects WHERE id = %s",
-        (project_id,)
-    )
+        cur.close()
+        conn.close()
 
-    conn.commit()
+        return {"message": "Project deleted successfully"}
 
-    cur.close()
-    conn.close()
-
-    return {"message": "Project deleted successfully"}
+    except Exception as e:
+        return {"error": str(e)}
