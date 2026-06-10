@@ -1,44 +1,33 @@
-from fastapi import FastAPI
-import psycopg2
+from pydantic import BaseModel
 
-app = FastAPI()
+class Project(BaseModel):
+    title: str
+    description: str
 
-@app.get("/")
-def home():
-    return {"message": "Portfolio Backend Running"}
 
-@app.get("/projects")
-def projects():
-    try:
-        conn = psycopg2.connect(
-            host="localhost",
-            database="portfolio_db",
-            user="portfolio_user",
-            password="Paul@1970"
-        )
+@app.post("/projects")
+def create_project(project: Project):
 
-        cur = conn.cursor()
+    conn = psycopg2.connect(
+        host="localhost",
+        database="portfolio_db",
+        user="portfolio_user",
+        password="Paul@1970"
+    )
 
-        cur.execute("""
-            SELECT id, title, description
-            FROM projects
-        """)
+    cur = conn.cursor()
 
-        rows = cur.fetchall()
+    cur.execute(
+        """
+        INSERT INTO projects (title, description)
+        VALUES (%s, %s)
+        """,
+        (project.title, project.description)
+    )
 
-        cur.close()
-        conn.close()
+    conn.commit()
 
-        projects = []
+    cur.close()
+    conn.close()
 
-        for row in rows:
-            projects.append({
-                "id": row[0],
-                "title": row[1],
-                "description": row[2]
-            })
-
-        return {"projects": projects}
-
-    except Exception as e:
-        return {"error": str(e)}
+    return {"message": "Project created successfully"}
