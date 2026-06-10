@@ -77,3 +77,27 @@ def create_project(project: Project):
 
     except Exception as e:
         return {"error": str(e)}
+
+@app.delete("/projects/{project_id}")
+def delete_project(project_id: int):
+
+    conn = psycopg2.connect(
+        host="localhost",
+        database="portfolio_db",
+        user="portfolio_user",
+        password="Paul@1970"
+    )
+
+    cur = conn.cursor()
+
+    cur.execute(
+        "DELETE FROM projects WHERE id = %s",
+        (project_id,)
+    )
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return {"message": "Project deleted successfully"}
