@@ -167,3 +167,34 @@ def delete_blog(blog_id: int):
 
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/contact")
+def contact(contact: Contact):
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT INTO contacts(name,email,message)
+            VALUES(%s,%s,%s)
+            """,
+            (
+                contact.name,
+                contact.email,
+                contact.message
+            )
+        )
+
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        return {
+            "message": "Message submitted successfully"
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
