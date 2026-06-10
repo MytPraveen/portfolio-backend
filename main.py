@@ -1,3 +1,12 @@
+from fastapi import FastAPI
+import psycopg2
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "Portfolio Backend Running"}
+
 @app.get("/projects")
 def projects():
     try:
@@ -9,7 +18,12 @@ def projects():
         )
 
         cur = conn.cursor()
-        cur.execute("SELECT * FROM projects")
+
+        cur.execute("""
+            SELECT id, title, description
+            FROM projects
+        """)
+
         rows = cur.fetchall()
 
         cur.close()
