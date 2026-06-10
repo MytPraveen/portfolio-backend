@@ -8,3 +8,8 @@ class Blog(BaseModel):
     title: str
     content: str
     author: str
+
+class Contact(BaseModel):
+    name: str
+    email: str
+    message: str
