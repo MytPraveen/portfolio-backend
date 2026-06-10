@@ -19,7 +19,7 @@ def projects():
             host="localhost",
             database="portfolio_db",
             user="portfolio_user",
-            password="Priya@1970"
+            password="Paul@1970"
         )
 
         cur = conn.cursor()
