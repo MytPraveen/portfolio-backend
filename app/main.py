@@ -198,3 +198,37 @@ def contact(contact: Contact):
 
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/contacts")
+def get_contacts():
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT id,name,email,message,created_at
+            FROM contacts
+            ORDER BY created_at DESC
+        """)
+
+        rows = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        contacts = []
+
+        for row in rows:
+            contacts.append({
+                "id": row[0],
+                "name": row[1],
+                "email": row[2],
+                "message": row[3],
+                "created_at": str(row[4])
+            })
+
+        return {"contacts": contacts}
+
+    except Exception as e:
+        return {"error": str(e)}
