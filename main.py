@@ -14,7 +14,7 @@ def projects():
         host="localhost",
         database="portfolio_db",
         user="portfolio_user",
-        password="YOUR_PASSWORD"
+        password="Paul@1970"
     )
 
     cur = conn.cursor()
