@@ -29,7 +29,16 @@ def projects():
         cur.close()
         conn.close()
 
-        return {"projects": rows}
+        projects = []
+
+        for row in rows:
+            projects.append({
+                "id": row[0],
+                "title": row[1],
+                "description": row[2]
+            })
+
+        return {"projects": projects}
 
     except Exception as e:
         return {"error": str(e)}
