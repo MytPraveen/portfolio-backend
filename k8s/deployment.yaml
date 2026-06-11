@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-backend
+  namespace: portfolio
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: portfolio-backend
+  template:
+    metadata:
+      labels:
+        app: portfolio-backend
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: portfolio-backend
+        image: praveendevops95/portfolio-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DB_HOST
+          value: "portfolio-db-postgresql"          # existing postgres svc
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: portfolio-db-secret
+              key: db-name
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: portfolio-db-secret
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: portfolio-db-secret
+              key: db-password
+        - name: UPLOAD_DIR
+          value: "/uploads"
+        volumeMounts:
+        - name: uploads
+          mountPath: /uploads
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep 5"]
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: blog-uploads-pvc
