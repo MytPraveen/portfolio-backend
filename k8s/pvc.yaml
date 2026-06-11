@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: blog-uploads-pvc
+  namespace: portfolio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path   # matches your local-path-provisioner
+  resources:
+    requests:
+      storage: 5Gi
