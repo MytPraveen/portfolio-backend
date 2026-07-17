@@ -44,7 +44,7 @@ spec:
 
   - name: docker-config
     secret:
-      secretName: dockerhub-secret
+      secretName: nexus-secret
 
   - name: workspace
     emptyDir: {}
@@ -65,7 +65,7 @@ spec:
 
     environment {
 
-        IMAGE_NAME="praveendevops95/portfolio-backend"
+        IMAGE_NAME="registry.praveeninfra.online/docker-private/portfolio-backend"
         IMAGE_TAG="v${BUILD_NUMBER}"
 
         GITOPS_REPO="github.com:MytPraveen/portfolio-gitops.git"
