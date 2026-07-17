@@ -79,9 +79,6 @@ spec:
         GIT_USER_NAME  = "Jenkins CI"
         GIT_USER_EMAIL = "jenkins@ci.com"
 
-        TRIVY_USERNAME = "admin"
-        TRIVY_PASSWORD = "YOUR_NEXUS_PASSWORD"
-
     }
 
     stages {
@@ -107,18 +104,32 @@ spec:
         }
 
         stage('Security Scan') {
+
             steps {
+
                 container('trivy') {
-                    sh '''
-                    trivy image \
-                      --username ${TRIVY_USERNAME} \
-                      --password ${TRIVY_PASSWORD} \
-                      --severity HIGH,CRITICAL \
-                      --exit-code 0 \
-                      ${IMAGE_NAME}:${IMAGE_TAG}
-                    '''
+
+                    withCredentials([usernamePassword(
+                        credentialsId: 'nexus-creds',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASS'
+                    )]) {
+
+                        sh '''
+                        trivy image \
+                        --username $NEXUS_USER \
+                        --password $NEXUS_PASS \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 0 \
+                        ${IMAGE_NAME}:${IMAGE_TAG}
+                        '''
+
+                    }
+
                 }
+
             }
+
         }
 
         stage('Update GitOps Repo') {
