@@ -25,6 +25,13 @@ spec:
     command: ["sh"]
     args: ["-c", "sleep 999999"]
     tty: true
+    env:
+    - name: DOCKER_CONFIG
+      value: "/root/.docker"
+    volumeMounts:
+    - name: docker-config
+      mountPath: /root/.docker/config.json
+      subPath: .dockerconfigjson
 
   - name: git
     image: alpine/git:latest
@@ -34,7 +41,6 @@ spec:
     env:
     - name: GIT_SSH_COMMAND
       value: "ssh -o StrictHostKeyChecking=no -i /root/.ssh/id_ed25519"
-
     volumeMounts:
     - name: github-ssh
       mountPath: /root/.ssh
@@ -65,13 +71,16 @@ spec:
 
     environment {
 
-        IMAGE_NAME="registry.praveeninfra.online/docker-private/portfolio-backend"
-        IMAGE_TAG="v${BUILD_NUMBER}"
+        IMAGE_NAME = "registry.praveeninfra.online/docker-private/portfolio-backend"
+        IMAGE_TAG  = "v${BUILD_NUMBER}"
 
-        GITOPS_REPO="github.com:MytPraveen/portfolio-gitops.git"
+        GITOPS_REPO = "github.com:MytPraveen/portfolio-gitops.git"
 
-        GIT_USER_NAME="Jenkins CI"
-        GIT_USER_EMAIL="jenkins@ci.com"
+        GIT_USER_NAME  = "Jenkins CI"
+        GIT_USER_EMAIL = "jenkins@ci.com"
+
+        TRIVY_USERNAME = "admin"
+        TRIVY_PASSWORD = "YOUR_NEXUS_PASSWORD"
 
     }
 
@@ -85,52 +94,37 @@ spec:
 
         stage('Build Docker Image') {
             steps {
-
                 container('kaniko') {
-
                     sh '''
-
                     /kaniko/executor \
                       --context $WORKSPACE \
                       --dockerfile Dockerfile \
                       --destination=${IMAGE_NAME}:${IMAGE_TAG} \
                       --destination=${IMAGE_NAME}:latest
-
                     '''
-
                 }
             }
         }
 
         stage('Security Scan') {
-
             steps {
-
                 container('trivy') {
-
                     sh '''
-
                     trivy image \
-                    --severity HIGH,CRITICAL \
-                    --exit-code 0 \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
-
+                      --username ${TRIVY_USERNAME} \
+                      --password ${TRIVY_PASSWORD} \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 0 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                     '''
-
                 }
-
             }
-
         }
 
         stage('Update GitOps Repo') {
-
             steps {
-
                 container('git') {
-
                     sh '''
-
                     git clone git@${GITOPS_REPO}
 
                     cd portfolio-gitops
@@ -146,13 +140,9 @@ spec:
                     git commit -m "Update backend image to ${IMAGE_TAG}" || true
 
                     git push origin main
-
                     '''
-
                 }
-
             }
-
         }
 
     }
@@ -160,23 +150,15 @@ spec:
     post {
 
         success {
-
             echo "========================================"
-
             echo "Backend Deployment Successful"
-
             echo "Image : ${IMAGE_NAME}:${IMAGE_TAG}"
-
             echo "ArgoCD will deploy automatically."
-
             echo "========================================"
-
         }
 
         failure {
-
             echo "Pipeline Failed"
-
         }
 
     }
