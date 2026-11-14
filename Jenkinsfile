@@ -50,7 +50,7 @@ spec:
 
   - name: docker-config
     secret:
-      secretName: nexus-secret
+      secretName: nexus-registry-secret
 
   - name: workspace
     emptyDir: {}
