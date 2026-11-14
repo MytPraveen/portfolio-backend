@@ -1,3 +1,4 @@
+
 pipeline {
 
     agent {
@@ -70,15 +71,13 @@ spec:
     }
 
     environment {
-
         IMAGE_NAME = "registry.praveeninfra.online/docker-private/portfolio-backend"
-        IMAGE_TAG  = "v${BUILD_NUMBER}"
+        IMAGE_TAG = "build-${BUILD_NUMBER}"
 
         GITOPS_REPO = "github.com:MytPraveen/portfolio-gitops.git"
 
-        GIT_USER_NAME  = "Jenkins CI"
+        GIT_USER_NAME = "Jenkins CI"
         GIT_USER_EMAIL = "jenkins@ci.com"
-
     }
 
     stages {
@@ -93,85 +92,71 @@ spec:
             steps {
                 container('kaniko') {
                     sh '''
-                    /kaniko/executor \
-                      --context $WORKSPACE \
-                      --dockerfile Dockerfile \
-                      --destination=${IMAGE_NAME}:${IMAGE_TAG} \
-                      --destination=${IMAGE_NAME}:latest
+                        /kaniko/executor \
+                          --context $WORKSPACE \
+                          --dockerfile $WORKSPACE/Dockerfile \
+                          --destination=${IMAGE_NAME}:${IMAGE_TAG}
                     '''
                 }
             }
         }
 
         stage('Security Scan') {
-
             steps {
-
                 container('trivy') {
-
-                    withCredentials([usernamePassword(
-                        credentialsId: 'nexus-creds',
-                        usernameVariable: 'NEXUS_USER',
-                        passwordVariable: 'NEXUS_PASS'
-                    )]) {
-
-                        sh '''
+                    sh '''
                         trivy image \
-                        --username $NEXUS_USER \
-                        --password $NEXUS_PASS \
-                        --severity HIGH,CRITICAL \
-                        --exit-code 0 \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
-                        '''
-
-                    }
-
+                          --scanners vuln \
+                          --severity HIGH,CRITICAL \
+                          --ignore-unfixed \
+                          --exit-code 1 \
+                          ${IMAGE_NAME}:${IMAGE_TAG}
+                    '''
                 }
-
             }
-
         }
 
         stage('Update GitOps Repo') {
             steps {
                 container('git') {
                     sh '''
-                    git clone git@${GITOPS_REPO}
+                        git clone git@${GITOPS_REPO}
 
-                    cd portfolio-gitops
+                        cd portfolio-gitops
 
-                    git config user.name "${GIT_USER_NAME}"
-                    git config user.email "${GIT_USER_EMAIL}"
+                        git config user.name "${GIT_USER_NAME}"
+                        git config user.email "${GIT_USER_EMAIL}"
 
-                    sed -i "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" \
-                    production/backend/deployment.yaml
+                        sed -i "s|^[[:space:]]*image:.*|        image: ${IMAGE_NAME}:${IMAGE_TAG}|" \
+                          production/backend/deployment.yaml
 
-                    git add .
+                        git diff -- production/backend/deployment.yaml
 
-                    git commit -m "Update backend image to ${IMAGE_TAG}" || true
+                        git add production/backend/deployment.yaml
 
-                    git push origin main
+                        git commit -m "Update backend image to ${IMAGE_TAG}"
+
+                        git push origin main
                     '''
                 }
             }
         }
-
     }
 
     post {
-
         success {
-            echo "========================================"
-            echo "Backend Deployment Successful"
-            echo "Image : ${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "ArgoCD will deploy automatically."
-            echo "========================================"
+            echo """
+            ========================================
+            Backend Pipeline Successful
+            Image: ${IMAGE_NAME}:${IMAGE_TAG}
+            GitOps repository updated.
+            ArgoCD will synchronize the deployment.
+            ========================================
+            """
         }
 
         failure {
-            echo "Pipeline Failed"
+            echo "Backend Pipeline Failed. Check the stage logs."
         }
-
     }
-
 }
