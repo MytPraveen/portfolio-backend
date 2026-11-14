@@ -1,17 +1,24 @@
 FROM python:3.12-slim
 
+# Update Debian OS packages to include security fixes
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Create upload directory
 RUN mkdir -p /uploads
 
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 # Copy entrypoint
 COPY entrypoint.sh /entrypoint.sh
+
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
