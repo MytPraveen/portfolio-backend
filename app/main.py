@@ -1,7 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.database import get_connection
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from app.database import get_connection, get_schema_connection
 from app.models import Project, Blog, Contact, Comment
 import os, shutil, uuid
 from pathlib import Path
@@ -20,11 +21,17 @@ UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
+@app.get("/metrics")
+def metrics():
+    return Response(
+        generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
 
 # ── DB INIT ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def init_db():
-    conn = get_connection()
+    conn = get_schema_connection()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS projects (
